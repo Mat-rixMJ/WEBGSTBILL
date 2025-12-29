@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customers - WebGST</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">WebGST</h1>
+            <div class="space-x-4">
+                <a href="dashboard.html" class="hover:underline">Dashboard</a>
+                <a href="products.html" class="hover:underline">Products</a>
+                <a href="customers.html" class="font-bold hover:underline">Customers</a>
+                <a href="invoices.html" class="hover:underline">Invoices</a>
+                <a href="reports.html" class="hover:underline">Reports</a>
+                <button onclick="logout()" class="bg-red-500 px-4 py-2 rounded hover:bg-red-600">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold">Customers</h2>
+            <button onclick="showAddModal()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                + Add Customer
+            </button>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="bg-white rounded-lg shadow p-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input type="text" id="search" placeholder="Search by name, GSTIN..." 
+                       class="px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select id="filter-type" class="px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Types</option>
+                    <option value="B2B">B2B Only</option>
+                    <option value="B2C">B2C Only</option>
+                </select>
+                <select id="filter-active" class="px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="true">Active Only</option>
+                    <option value="false">Inactive Only</option>
+                    <option value="">All Customers</option>
+                </select>
+                <button onclick="loadCustomers()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                    Search
+                </button>
+            </div>
+        </div>
+
+        <!-- Customers Table -->
+        <div class="bg-white rounded-lg shadow overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-100 border-b">
+                    <tr>
+                        <th class="px-4 py-3 text-left">Name</th>
+                        <th class="px-4 py-3 text-center">Type</th>
+                        <th class="px-4 py-3 text-left">GSTIN</th>
+                        <th class="px-4 py-3 text-left">State</th>
+                        <th class="px-4 py-3 text-left">Contact</th>
+                        <th class="px-4 py-3 text-center">Status</th>
+                        <th class="px-4 py-3 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="customers-table">
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                            Loading customers...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add/Edit Customer Modal -->
+    <div id="customer-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-8 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <h3 id="modal-title" class="text-2xl font-bold mb-6">Add Customer</h3>
+            
+            <form id="customer-form" class="space-y-4">
+                <!-- Customer Name -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">
+                        Customer Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="name" required minlength="2" maxlength="255"
+                           class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="e.g., ABC Trading Pvt Ltd, John Doe">
+                </div>
+
+                <!-- Customer Type -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">
+                        Customer Type <span class="text-red-500">*</span>
+                    </label>
+                    <div class="flex space-x-4">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="customer_type" value="B2B" required 
+                                   class="mr-2" onchange="toggleGSTIN()">
+                            <span class="font-medium">B2B (Business)</span>
+                            <span class="ml-2 text-xs text-gray-500">- GSTIN required</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="customer_type" value="B2C" required 
+                                   class="mr-2" onchange="toggleGSTIN()" checked>
+                            <span class="font-medium">B2C (Consumer)</span>
+                            <span class="ml-2 text-xs text-gray-500">- No GSTIN</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- GSTIN Field -->
+                <div id="gstin-field">
+                    <label class="block text-sm font-medium mb-2">
+                        GSTIN <span id="gstin-required" class="text-red-500 hidden">*</span>
+                        <span class="text-xs text-gray-500">(15 characters)</span>
+                    </label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="gstin" maxlength="15" pattern="[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}"
+                               class="flex-1 px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                               placeholder="e.g., 29ABCDE1234F1Z5"
+                               oninput="validateGSTINInput(this)"
+                               disabled>
+                        <button type="button" id="verify-gstin-btn" onclick="verifyOnGSTPortal()" 
+                                class="hidden bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm whitespace-nowrap">
+                            🔍 Verify on GST Portal
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-600 mt-1">
+                        Format: 2-digit state code + 10-char PAN + entity + Z + checksum
+                    </p>
+                    <p id="gstin-disclaimer" class="hidden text-xs text-blue-600 mt-2 p-2 bg-blue-50 rounded">
+                        ℹ️ GSTIN format is validated by the system. Final verification is done on the GST portal.
+                    </p>
+                </div>
+
+                <!-- Address -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">
+                        Address <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="address" required minlength="5" maxlength="500" rows="2"
+                              class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Complete address with building, street, area"></textarea>
+                </div>
+
+                <!-- State Selection -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            State <span class="text-red-500">*</span>
+                        </label>
+                        <select id="state_code" required onchange="updateStateCode()"
+                                class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Select State</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            State Code <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="state_code_display" readonly
+                               class="w-full px-4 py-2 border rounded bg-gray-50 cursor-not-allowed"
+                               placeholder="Auto-filled">
+                    </div>
+                </div>
+
+                <!-- Phone and Email -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Phone</label>
+                        <input type="tel" id="phone" maxlength="15"
+                               class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               placeholder="e.g., +91 9876543210">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Email</label>
+                        <input type="email" id="email" maxlength="255"
+                               class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               placeholder="e.g., customer@example.com">
+                    </div>
+                </div>
+
+                <!-- Status (for edit mode) -->
+                <div id="status-field" class="hidden">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="is_active" checked class="mr-2">
+                        <span class="text-sm font-medium">Customer is Active</span>
+                    </label>
+                </div>
+
+                <!-- Error/Success Messages -->
+                <div id="modal-error" class="hidden p-3 bg-red-100 text-red-700 rounded"></div>
+                <div id="modal-success" class="hidden p-3 bg-green-100 text-green-700 rounded"></div>
+
+                <!-- Buttons -->
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" onclick="closeModal()" 
+                            class="px-6 py-2 border rounded hover:bg-gray-100">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Save Customer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api';
+        let currentCustomerId = null;
+
+        // Indian state codes mapping
+        const STATE_CODES = {
+            "01": "Jammu and Kashmir",
+            "02": "Himachal Pradesh",
+            "03": "Punjab",
+            "04": "Chandigarh",
+            "05": "Uttarakhand",
+            "06": "Haryana",
+            "07": "Delhi",
+            "08": "Rajasthan",
+            "09": "Uttar Pradesh",
+            "10": "Bihar",
+            "11": "Sikkim",
+            "12": "Arunachal Pradesh",
+            "13": "Nagaland",
+            "14": "Manipur",
+            "15": "Mizoram",
+            "16": "Tripura",
+            "17": "Meghalaya",
+            "18": "Assam",
+            "19": "West Bengal",
+            "20": "Jharkhand",
+            "21": "Odisha",
+            "22": "Chhattisgarh",
+            "23": "Madhya Pradesh",
+            "24": "Gujarat",
+            "26": "Dadra and Nagar Haveli and Daman and Diu",
+            "27": "Maharashtra",
+            "29": "Karnataka",
+            "30": "Goa",
+            "31": "Lakshadweep",
+            "32": "Kerala",
+            "33": "Tamil Nadu",
+            "34": "Puducherry",
+            "35": "Andaman and Nicobar Islands",
+            "36": "Telangana",
+            "37": "Andhra Pradesh",
+            "38": "Ladakh"
+        };
+
+        // Check authentication
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'index.html';
+        }
+
+        const headers = {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        };
+
+        // Load page
+        document.addEventListener('DOMContentLoaded', () => {
+            populateStateDropdown();
+            loadCustomers();
+        });
+
+        function populateStateDropdown() {
+            const select = document.getElementById('state_code');
+            for (const [code, name] of Object.entries(STATE_CODES)) {
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = `${name} (${code})`;
+                select.appendChild(option);
+            }
+        }
+
+        function updateStateCode() {
+            const stateCode = document.getElementById('state_code').value;
+            document.getElementById('state_code_display').value = stateCode || '';
+        }
+
+        function toggleGSTIN() {
+            const customerType = document.querySelector('input[name="customer_type"]:checked')?.value;
+            const gstinInput = document.getElementById('gstin');
+            const gstinRequired = document.getElementById('gstin-required');
+            const verifyBtn = document.getElementById('verify-gstin-btn');
+            const disclaimer = document.getElementById('gstin-disclaimer');
+            
+            if (customerType === 'B2B') {
+                gstinInput.disabled = false;
+                gstinInput.required = true;
+                gstinRequired.classList.remove('hidden');
+                verifyBtn.classList.remove('hidden');
+                disclaimer.classList.remove('hidden');
+            } else {
+                gstinInput.disabled = true;
+                gstinInput.required = false;
+                gstinInput.value = '';
+                gstinRequired.classList.add('hidden');
+                verifyBtn.classList.add('hidden');
+                disclaimer.classList.add('hidden');
+            }
+        }
+
+        function validateGSTINInput(input) {
+            // Convert to uppercase
+            input.value = input.value.toUpperCase();
+            
+            // Basic format validation (15 chars) - visual feedback only, no blocking
+            if (input.value.length === 15) {
+                const pattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+                if (pattern.test(input.value)) {
+                    input.classList.add('border-green-500');
+                    input.classList.remove('border-red-500');
+                } else {
+                    input.classList.add('border-red-500');
+                    input.classList.remove('border-green-500');
+                }
+            } else if (input.value.length > 0) {
+                input.classList.remove('border-green-500', 'border-red-500');
+            }
+        }
+
+        // Frontend GSTIN checksum validation aligned with backend logic
+        function isValidGstin(gstin) {
+            if (!gstin || gstin.length !== 15) return false;
+            const pattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+            if (!pattern.test(gstin)) return false;
+
+            const base = gstin.slice(0, 14);
+            const checksumChar = gstin[14];
+            const charValue = (c) => (c >= '0' && c <= '9') ? (c.charCodeAt(0) - 48) : (c.charCodeAt(0) - 55);
+
+            let total = 0;
+            for (let i = 0; i < base.length; i++) {
+                const value = charValue(base[i]);
+                const factor = (i % 2 === 0) ? 1 : 2; // start with 1, then 2
+                const product = value * factor;
+                total += Math.floor(product / 36) + (product % 36);
+            }
+            const checksumValue = (36 - (total % 36)) % 36;
+            const expected = checksumValue < 10 ? String(checksumValue) : String.fromCharCode(55 + checksumValue);
+            return checksumChar === expected;
+        }
+
+        function verifyOnGSTPortal() {
+            const gstin = document.getElementById('gstin').value.trim();
+
+            if (!gstin || gstin.length !== 15) {
+                showModalError('Please enter a valid 15-character GSTIN first');
+                return;
+            }
+
+            // Validate format before proceeding
+            const pattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+            if (!pattern.test(gstin)) {
+                showModalError('Invalid GSTIN format. Please correct it before verification.');
+                return;
+            }
+
+            // Copy GSTIN to clipboard for easy pasting on the portal
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(gstin).catch(() => {});
+                }
+            } catch (e) { /* no-op */ }
+
+            // Open the official Search Taxpayer page (no query params to avoid portal redirects)
+            const gstPortalUrl = 'https://services.gst.gov.in/services/searchtp';
+            window.open(gstPortalUrl, '_blank', 'noopener');
+
+            showModalSuccess('GST Portal opened. GSTIN copied to clipboard — paste it on the portal and complete the CAPTCHA.');
+        }
+
+        async function loadCustomers() {
+            try {
+                const search = document.getElementById('search').value;
+                const typeFilter = document.getElementById('filter-type').value;
+                const activeFilter = document.getElementById('filter-active').value;
+                
+                let url = `${API_URL}/customers/?limit=1000`;
+                if (activeFilter !== '') {
+                    url += `&active_only=${activeFilter}`;
+                }
+
+                const response = await fetch(url, { headers });
+                
+                if (response.ok) {
+                    let customers = await response.json();
+                    
+                    // Client-side filters
+                    if (search) {
+                        const searchLower = search.toLowerCase();
+                        customers = customers.filter(c => 
+                            c.name.toLowerCase().includes(searchLower) ||
+                            (c.gstin && c.gstin.includes(search.toUpperCase()))
+                        );
+                    }
+                    
+                    if (typeFilter) {
+                        customers = customers.filter(c => c.customer_type === typeFilter);
+                    }
+                    
+                    displayCustomers(customers);
+                } else if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    window.location.href = 'index.html';
+                } else {
+                    showError('Failed to load customers');
+                }
+            } catch (err) {
+                showError('Network error. Please check if backend is running.');
+            }
+        }
+
+        function displayCustomers(customers) {
+            const tbody = document.getElementById('customers-table');
+            
+            if (customers.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                            No customers found. Click "Add Customer" to create one.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = customers.map(customer => `
+                <tr class="border-b hover:bg-gray-50 ${!customer.is_active ? 'bg-gray-100' : ''}">
+                    <td class="px-4 py-3">
+                        <div class="font-medium">${escapeHtml(customer.name)}</div>
+                        <div class="text-xs text-gray-500">${escapeHtml(customer.address).substring(0, 50)}...</div>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2 py-1 text-xs rounded ${customer.customer_type === 'B2B' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+                            ${customer.customer_type}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 font-mono text-sm">
+                        ${customer.gstin ? customer.gstin : '<span class="text-gray-400">—</span>'}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="text-sm">${STATE_CODES[customer.state_code] || customer.state}</div>
+                        <div class="text-xs text-gray-500">Code: ${customer.state_code}</div>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        ${customer.phone ? `<div>📞 ${escapeHtml(customer.phone)}</div>` : ''}
+                        ${customer.email ? `<div class="text-xs text-gray-600">✉️ ${escapeHtml(customer.email)}</div>` : ''}
+                        ${!customer.phone && !customer.email ? '<span class="text-gray-400">—</span>' : ''}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2 py-1 text-xs rounded ${customer.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}">
+                            ${customer.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-center space-x-2">
+                        <button onclick="editCustomer(${customer.id})" 
+                                class="text-blue-600 hover:text-blue-800 text-sm">
+                            Edit
+                        </button>
+                        ${customer.is_active ? `
+                            <button onclick="deactivateCustomer(${customer.id})" 
+                                    class="text-red-600 hover:text-red-800 text-sm">
+                                Deactivate
+                            </button>
+                        ` : `
+                            <button onclick="activateCustomer(${customer.id})" 
+                                    class="text-green-600 hover:text-green-800 text-sm">
+                                Activate
+                            </button>
+                        `}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showAddModal() {
+            currentCustomerId = null;
+            document.getElementById('modal-title').textContent = 'Add Customer';
+            document.getElementById('customer-form').reset();
+            document.getElementById('status-field').classList.add('hidden');
+            document.querySelector('input[value="B2C"]').checked = true;
+            toggleGSTIN();
+            document.getElementById('customer-modal').classList.remove('hidden');
+        }
+
+        async function editCustomer(id) {
+            currentCustomerId = id;
+            
+            try {
+                const response = await fetch(`${API_URL}/customers/${id}`, { headers });
+                
+                if (response.ok) {
+                    const customer = await response.json();
+                    
+                    document.getElementById('modal-title').textContent = 'Edit Customer';
+                    document.getElementById('name').value = customer.name;
+                    document.querySelector(`input[value="${customer.customer_type}"]`).checked = true;
+                    document.getElementById('gstin').value = customer.gstin || '';
+                    document.getElementById('address').value = customer.address;
+                    document.getElementById('state_code').value = customer.state_code;
+                    updateStateCode();
+                    document.getElementById('phone').value = customer.phone || '';
+                    document.getElementById('email').value = customer.email || '';
+                    document.getElementById('is_active').checked = customer.is_active;
+                    document.getElementById('status-field').classList.remove('hidden');
+                    
+                    toggleGSTIN();
+                    document.getElementById('customer-modal').classList.remove('hidden');
+                } else {
+                    if (response.status === 401) {
+                        localStorage.removeItem('token');
+                        window.location.href = 'index.html?session=expired';
+                        return;
+                    }
+                    try {
+                        const error = await response.json();
+                        showError(extractErrorMessage(error));
+                    } catch {
+                        showError('Failed to load customer details');
+                    }
+                }
+            } catch (err) {
+                showError('Network error');
+            }
+        }
+
+        document.getElementById('customer-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const customerType = document.querySelector('input[name="customer_type"]:checked').value;
+            const stateCode = document.getElementById('state_code').value;
+            const gstin = document.getElementById('gstin').value.trim().toUpperCase();
+            
+            // Validate GSTIN for B2B
+            if (customerType === 'B2B') {
+                if (!gstin) {
+                    showModalError('GSTIN is required for B2B customers');
+                    return;
+                }
+                
+                // Validate state match
+                const gstinState = gstin.substring(0, 2);
+                if (gstinState !== stateCode) {
+                    showModalError(`GSTIN state code (${gstinState}) must match selected state (${stateCode})`);
+                    return;
+                }
+                // Checksum validation intentionally not enforced on frontend
+            }
+            
+            const customerData = {
+                name: document.getElementById('name').value.trim(),
+                customer_type: customerType,
+                gstin: customerType === 'B2B' ? gstin : null,
+                address: document.getElementById('address').value.trim(),
+                state: STATE_CODES[stateCode],
+                state_code: stateCode,
+                phone: document.getElementById('phone').value.trim() || null,
+                email: document.getElementById('email').value.trim() || null
+            };
+
+            // Add is_active for updates
+            if (currentCustomerId) {
+                customerData.is_active = document.getElementById('is_active').checked;
+            }
+
+            try {
+                const url = currentCustomerId 
+                    ? `${API_URL}/customers/${currentCustomerId}`
+                    : `${API_URL}/customers/`;
+                
+                const method = currentCustomerId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers,
+                    body: JSON.stringify(customerData)
+                });
+
+                if (response.ok) {
+                    showModalSuccess(currentCustomerId ? 'Customer updated successfully!' : 'Customer created successfully!');
+                    setTimeout(() => {
+                        closeModal();
+                        loadCustomers();
+                    }, 1500);
+                } else {
+                    if (response.status === 401) {
+                        localStorage.removeItem('token');
+                        window.location.href = 'index.html?session=expired';
+                        return;
+                    }
+                    let msg = 'Operation failed';
+                    try {
+                        const error = await response.json();
+                        msg = extractErrorMessage(error);
+                    } catch (e) {
+                        try {
+                            const txt = await response.text();
+                            msg = txt || msg;
+                        } catch {}
+                    }
+                    showModalError(msg);
+                }
+            } catch (err) {
+                showModalError('Network error. Please check if backend is running.');
+            }
+        });
+
+        async function deactivateCustomer(id) {
+            if (!confirm('Deactivate this customer? They will not appear in new invoices.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/customers/${id}/deactivate`, {
+                    method: 'PATCH',
+                    headers
+                });
+
+                if (response.ok) {
+                    loadCustomers();
+                } else {
+                    if (response.status === 401) {
+                        localStorage.removeItem('token');
+                        window.location.href = 'index.html?session=expired';
+                        return;
+                    }
+                    showError('Failed to deactivate customer');
+                }
+            } catch (err) {
+                showError('Network error');
+            }
+        }
+
+        async function activateCustomer(id) {
+            try {
+                const response = await fetch(`${API_URL}/customers/${id}`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify({ is_active: true })
+                });
+
+                if (response.ok) {
+                    loadCustomers();
+                } else {
+                    if (response.status === 401) {
+                        localStorage.removeItem('token');
+                        window.location.href = 'index.html?session=expired';
+                        return;
+                    }
+                    showError('Failed to activate customer');
+                }
+            } catch (err) {
+                showError('Network error');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('customer-modal').classList.add('hidden');
+            document.getElementById('modal-error').classList.add('hidden');
+            document.getElementById('modal-success').classList.add('hidden');
+        }
+
+        function showModalError(msg) {
+            const errorDiv = document.getElementById('modal-error');
+            errorDiv.textContent = msg;
+            errorDiv.classList.remove('hidden');
+            setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+        }
+
+        function showModalSuccess(msg) {
+            const successDiv = document.getElementById('modal-success');
+            successDiv.textContent = msg;
+            successDiv.classList.remove('hidden');
+        }
+
+        function showError(msg) {
+            alert(msg);
+        }
+
+        // Helper: extract meaningful error message from FastAPI responses (including 422 validation arrays)
+        function extractErrorMessage(error) {
+            try {
+                if (!error) return 'Operation failed';
+                if (typeof error === 'string') return error;
+                if (typeof error.detail === 'string') return error.detail;
+                if (Array.isArray(error.detail)) {
+                    const msgs = error.detail.map(e => e.msg || e.detail || JSON.stringify(e));
+                    return msgs.join('; ');
+                }
+                if (error.message) return error.message;
+                return JSON.stringify(error);
+            } catch {
+                return 'Operation failed';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

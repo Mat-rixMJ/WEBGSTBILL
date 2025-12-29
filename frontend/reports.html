@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - WebGST</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">WebGST</h1>
+            <div class="space-x-4 flex items-center">
+                <a href="dashboard.html" class="hover:underline">Dashboard</a>
+                <a href="business.html" class="hover:underline">Business</a>
+                <a href="products.html" class="hover:underline">Products</a>
+                <a href="customers.html" class="hover:underline">Customers</a>
+                <a href="invoices.html" class="hover:underline">Invoices</a>
+                <a href="reports.html" class="font-bold hover:underline">Reports</a>
+                <button onclick="logout()" class="bg-red-500 px-4 py-2 rounded hover:bg-red-600">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-8">
+        <h2 class="text-3xl font-bold mb-2">Reports & Summaries</h2>
+        <p class="text-red-600 font-semibold mb-6 p-4 bg-red-50 border border-red-200 rounded">
+            ⚠️ IMPORTANT: Reports are for internal review and GST preparation only. 
+            Final GST returns must be filed on gst.gov.in.
+        </p>
+
+        <!-- Report Type Tabs -->
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="border-b border-gray-200 flex flex-wrap">
+                <button class="tab-btn active" data-tab="sales-register">Sales Register</button>
+                <button class="tab-btn" data-tab="purchase-register">Purchase Register</button>
+                <button class="tab-btn" data-tab="customer-report">Customers</button>
+                <button class="tab-btn" data-tab="supplier-report">Suppliers</button>
+                <button class="tab-btn" data-tab="product-hsn">Products/HSN</button>
+                <button class="tab-btn" data-tab="inventory">Inventory</button>
+                <button class="tab-btn" data-tab="business-ledger">Business Ledger</button>
+                <button class="tab-btn" data-tab="gst-summary">GST Summary</button>
+                <button class="tab-btn" data-tab="gstr-export">GSTR Export</button>
+            </div>
+
+            <!-- Sales Register -->
+            <div id="sales-register" class="tab-content active p-6">
+                <h3 class="text-xl font-bold mb-4">Sales Register (Output GST)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">From Date</label>
+                        <input type="date" id="sales-from-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">To Date</label>
+                        <input type="date" id="sales-to-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">&nbsp;</label>
+                        <button onclick="loadSalesRegister()" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Generate</button>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">&nbsp;</label>
+                        <button onclick="exportSalesCSV()" class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Export CSV</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-2 py-2 border text-left">Invoice</th>
+                                <th class="px-2 py-2 border text-left">Date</th>
+                                <th class="px-2 py-2 border text-left">Customer</th>
+                                <th class="px-2 py-2 border text-right">Taxable</th>
+                                <th class="px-2 py-2 border text-right">CGST</th>
+                                <th class="px-2 py-2 border text-right">SGST</th>
+                                <th class="px-2 py-2 border text-right">IGST</th>
+                                <th class="px-2 py-2 border text-right">Total</th>
+                                <th class="px-2 py-2 border text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sales-tbody">
+                            <tr><td colspan="9" class="px-2 py-4 text-center text-gray-500">Select dates and click Generate</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="sales-summary" class="mt-4 p-4 bg-gray-50 rounded border hidden"></div>
+            </div>
+
+            <!-- Purchase Register -->
+            <div id="purchase-register" class="tab-content p-6">
+                <h3 class="text-xl font-bold mb-4">Purchase Register (Input GST)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">From Date</label>
+                        <input type="date" id="purchase-from-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">To Date</label>
+                        <input type="date" id="purchase-to-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">&nbsp;</label>
+                        <button onclick="loadPurchaseRegister()" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Generate</button>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">&nbsp;</label>
+                        <button onclick="exportPurchaseCSV()" class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Export CSV</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-2 py-2 border text-left">Supplier</th>
+                                <th class="px-2 py-2 border text-left">Inv No</th>
+                                <th class="px-2 py-2 border text-left">Date</th>
+                                <th class="px-2 py-2 border text-right">Taxable</th>
+                                <th class="px-2 py-2 border text-right">Input CGST</th>
+                                <th class="px-2 py-2 border text-right">Input SGST</th>
+                                <th class="px-2 py-2 border text-right">Input IGST</th>
+                                <th class="px-2 py-2 border text-right">Total</th>
+                                <th class="px-2 py-2 border text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="purchase-tbody">
+                            <tr><td colspan="9" class="px-2 py-4 text-center text-gray-500">Select dates and click Generate</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="purchase-summary" class="mt-4 p-4 bg-gray-50 rounded border hidden"></div>
+            </div>
+
+            <!-- Customer Report -->
+            <div id="customer-report" class="tab-content p-6">
+                <h3 class="text-xl font-bold mb-4">Customer-wise Sales Report</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">From Date</label>
+                        <input type="date" id="customer-from-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">To Date</label>
+                        <input type="date" id="customer-to-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">&nbsp;</label>
+                        <button onclick="loadCustomerReport()" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Generate</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-2 py-2 border text-left">Customer</th>
+                                <th class="px-2 py-2 border text-left">Type</th>
+                                <th class="px-2 py-2 border text-right">Invoices</th>
+                                <th class="px-2 py-2 border text-right">Sales Value</th>
+                                <th class="px-2 py-2 border text-right">GST</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customer-tbody">
+                            <tr><td colspan="5" class="px-2 py-4 text-center text-gray-500">Select dates and click Generate</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="customer-summary" class="mt-4 p-4 bg-gray-50 rounded border hidden"></div>
+            </div>
+
+            <!-- Supplier Report -->
+            <div id="supplier-report" class="tab-content p-6">
+                <h3 class="text-xl font-bold mb-4">Supplier-wise Purchase Report</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">From Date</label>
+                        <input type="date" id="supplier-from-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">To Date</label>
+                        <input type="date" id="supplier-to-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">&nbsp;</label>
+                        <button onclick="loadSupplierReport()" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Generate</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-2 py-2 border text-left">Supplier</th>
+                                <th class="px-2 py-2 border text-left">Type</th>
+                                <th class="px-2 py-2 border text-right">Purchases</th>
+                                <th class="px-2 py-2 border text-right">Purchase Value</th>
+                                <th class="px-2 py-2 border text-right">Input GST</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supplier-tbody">
+                            <tr><td colspan="5" class="px-2 py-4 text-center text-gray-500">Select dates and click Generate</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="supplier-summary" class="mt-4 p-4 bg-gray-50 rounded border hidden"></div>
+            </div>
+
+            <!-- Product/HSN Report -->
+            <div id="product-hsn" class="tab-content p-6">
+                <h3 class="text-xl font-bold mb-4">Product/HSN Sales Report (GSTR-1 Prep)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">From Date</label>
+                        <input type="date" id="product-from-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">To Date</label>
+                        <input type="date" id="product-to-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">&nbsp;</label>
+                        <button onclick="loadProductReport()" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Generate</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-2 py-2 border text-left">Product</th>
+                                <th class="px-2 py-2 border text-left">HSN</th>
+                                <th class="px-2 py-2 border text-right">Rate %</th>
+                                <th class="px-2 py-2 border text-right">Qty Sold</th>
+                                <th class="px-2 py-2 border text-right">Taxable Value</th>
+                                <th class="px-2 py-2 border text-right">GST Collected</th>
+                            </tr>
+                        </thead>
+                        <tbody id="product-tbody">
+                            <tr><td colspan="6" class="px-2 py-4 text-center text-gray-500">Select dates and click Generate</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="product-summary" class="mt-4 p-4 bg-gray-50 rounded border hidden"></div>
+            </div>
+
+            <!-- Inventory Report -->
+            <div id="inventory" class="tab-content p-6">
+                <h3 class="text-xl font-bold mb-4">Inventory Report</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">As of Date</label>
+                        <input type="date" id="inventory-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">&nbsp;</label>
+                        <button onclick="loadInventoryReport()" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Generate</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-2 py-2 border text-left">Product</th>
+                                <th class="px-2 py-2 border text-left">HSN</th>
+                                <th class="px-2 py-2 border text-right">Opening</th>
+                                <th class="px-2 py-2 border text-right">Purchased</th>
+                                <th class="px-2 py-2 border text-right">Sold</th>
+                                <th class="px-2 py-2 border text-right">Closing</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-tbody">
+                            <tr><td colspan="6" class="px-2 py-4 text-center text-gray-500">Select date and click Generate</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Business Ledger -->
+            <div id="business-ledger" class="tab-content p-6">
+                <h3 class="text-xl font-bold mb-4">Business Summary Ledger (Informational)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">From Date</label>
+                        <input type="date" id="ledger-from-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">To Date</label>
+                        <input type="date" id="ledger-to-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">&nbsp;</label>
+                        <button onclick="loadBusinessLedger()" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Generate</button>
+                    </div>
+                </div>
+                <div id="ledger-content" class="space-y-4">
+                    <p class="text-gray-500 text-center py-8">Select dates and click Generate</p>
+                </div>
+                <div class="p-4 bg-yellow-50 border border-yellow-300 rounded mt-4 text-sm text-yellow-800">
+                    <strong>Note:</strong> This is an informational summary only, NOT a statutory accounting ledger.
+                </div>
+            </div>
+
+            <!-- GST Summary -->
+            <div id="gst-summary" class="tab-content p-6">
+                <h3 class="text-xl font-bold mb-4">GST Summary (Monthly)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Month</label>
+                        <select id="gst-month" class="w-full border rounded px-3 py-2">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Year</label>
+                        <input type="number" id="gst-year" value="2025" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">&nbsp;</label>
+                        <button onclick="loadGSTSummary()" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Generate</button>
+                    </div>
+                </div>
+                <div id="gst-content" class="space-y-4">
+                    <p class="text-gray-500 text-center py-8">Select month/year and click Generate</p>
+                </div>
+            </div>
+
+            <!-- GSTR Export -->
+            <div id="gstr-export" class="tab-content p-6">
+                <h3 class="text-xl font-bold mb-4">GSTR-1 Ready Export</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">From Date</label>
+                        <input type="date" id="gstr-from-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">To Date</label>
+                        <input type="date" id="gstr-to-date" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">&nbsp;</label>
+                        <button onclick="loadGSTRExport()" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Generate</button>
+                    </div>
+                </div>
+                <div id="gstr-content" class="space-y-6">
+                    <p class="text-gray-500 text-center py-8">Select dates and click Generate</p>
+                </div>
+                <div class="p-4 bg-yellow-50 border border-yellow-300 rounded mt-4 text-sm text-yellow-800">
+                    <strong>Important:</strong> This is GSTR-1 preparation data only. Manual filing on gst.gov.in required.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api';
+        
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'index.html';
+        }
+        
+        const headers = {
+            'Authorization': `Bearer ${token}`
+        };
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                const tabId = btn.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        function setDefaultDates() {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            
+            const formatDate = (d) => d.toISOString().split('T')[0];
+            
+            document.getElementById('sales-from-date').value = formatDate(firstDay);
+            document.getElementById('sales-to-date').value = formatDate(lastDay);
+            document.getElementById('purchase-from-date').value = formatDate(firstDay);
+            document.getElementById('purchase-to-date').value = formatDate(lastDay);
+            document.getElementById('customer-from-date').value = formatDate(firstDay);
+            document.getElementById('customer-to-date').value = formatDate(lastDay);
+            document.getElementById('supplier-from-date').value = formatDate(firstDay);
+            document.getElementById('supplier-to-date').value = formatDate(lastDay);
+            document.getElementById('product-from-date').value = formatDate(firstDay);
+            document.getElementById('product-to-date').value = formatDate(lastDay);
+            document.getElementById('ledger-from-date').value = formatDate(firstDay);
+            document.getElementById('ledger-to-date').value = formatDate(lastDay);
+            document.getElementById('inventory-date').value = formatDate(today);
+            document.getElementById('gst-month').value = (today.getMonth() + 1).toString();
+            document.getElementById('gst-year').value = today.getFullYear();
+            document.getElementById('gstr-from-date').value = formatDate(firstDay);
+            document.getElementById('gstr-to-date').value = formatDate(lastDay);
+        }
+
+        function formatCurrency(amount) {
+            return `₹${parseFloat(amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+
+        // Sales Register
+        async function loadSalesRegister() {
+            const fromDate = document.getElementById('sales-from-date').value;
+            const toDate = document.getElementById('sales-to-date').value;
+            
+            if (!fromDate || !toDate) {
+                alert('Please select both from and to dates');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/reports/sales?from_date=${fromDate}&to_date=${toDate}`, { headers });
+                if (!res.ok) throw new Error('Failed to load sales register');
+                
+                const data = await res.json();
+                const tbody = document.getElementById('sales-tbody');
+                
+                if (data.rows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="px-2 py-4 text-center text-gray-500">No invoices found</td></tr>';
+                    document.getElementById('sales-summary').classList.add('hidden');
+                    return;
+                }
+                
+                tbody.innerHTML = data.rows.map(row => {
+                    const statusClass = row.status === 'CANCELLED' ? 'text-red-600' : 'text-green-600';
+                    return `<tr class="${row.status === 'CANCELLED' ? 'bg-red-50' : ''}">
+                        <td class="px-2 py-2 border">${row.invoice_number}</td>
+                        <td class="px-2 py-2 border text-sm">${row.invoice_date}</td>
+                        <td class="px-2 py-2 border">${row.customer_name}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.taxable_value)}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.cgst)}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.sgst)}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.igst)}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.grand_total)}</td>
+                        <td class="px-2 py-2 border text-center"><span class="${statusClass}">${row.status}</span></td>
+                    </tr>`;
+                }).join('');
+                
+                document.getElementById('sales-summary').classList.remove('hidden');
+                document.getElementById('sales-summary').innerHTML = `
+                    <strong>Total:</strong> ${data.summary.count_invoices} invoices (${data.summary.count_cancelled} cancelled)
+                    | Taxable: ${formatCurrency(data.summary.total_taxable_value)}
+                    | CGST: ${formatCurrency(data.summary.total_cgst)}
+                    | SGST: ${formatCurrency(data.summary.total_sgst)}
+                    | IGST: ${formatCurrency(data.summary.total_igst)}
+                    | <strong>Total GST: ${formatCurrency(data.summary.total_gst)}</strong>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load sales register');
+            }
+        }
+
+        // Purchase Register
+        async function loadPurchaseRegister() {
+            const fromDate = document.getElementById('purchase-from-date').value;
+            const toDate = document.getElementById('purchase-to-date').value;
+            
+            if (!fromDate || !toDate) {
+                alert('Please select both dates');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/reports/purchases?from_date=${fromDate}&to_date=${toDate}`, { headers });
+                if (!res.ok) throw new Error('Failed to load purchase register');
+                
+                const data = await res.json();
+                const tbody = document.getElementById('purchase-tbody');
+                
+                if (data.rows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="px-2 py-4 text-center text-gray-500">No purchases found</td></tr>';
+                    document.getElementById('purchase-summary').classList.add('hidden');
+                    return;
+                }
+                
+                tbody.innerHTML = data.rows.map(row => {
+                    const statusClass = row.status === 'CANCELLED' ? 'text-red-600' : 'text-green-600';
+                    return `<tr class="${row.status === 'CANCELLED' ? 'bg-red-50' : ''}">
+                        <td class="px-2 py-2 border">${row.supplier_name}</td>
+                        <td class="px-2 py-2 border">${row.supplier_invoice_number}</td>
+                        <td class="px-2 py-2 border text-sm">${row.invoice_date}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.taxable_value)}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.input_cgst)}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.input_sgst)}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.input_igst)}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.grand_total)}</td>
+                        <td class="px-2 py-2 border text-center"><span class="${statusClass}">${row.status}</span></td>
+                    </tr>`;
+                }).join('');
+                
+                document.getElementById('purchase-summary').classList.remove('hidden');
+                document.getElementById('purchase-summary').innerHTML = `
+                    <strong>Total:</strong> ${data.summary.count_purchases} purchases (${data.summary.count_cancelled} cancelled)
+                    | Taxable: ${formatCurrency(data.summary.total_taxable_value)}
+                    | Input CGST: ${formatCurrency(data.summary.total_input_cgst)}
+                    | Input SGST: ${formatCurrency(data.summary.total_input_sgst)}
+                    | Input IGST: ${formatCurrency(data.summary.total_input_igst)}
+                    | <strong>Total Input GST: ${formatCurrency(data.summary.total_input_gst)}</strong>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load purchase register');
+            }
+        }
+
+        // Customer Report
+        async function loadCustomerReport() {
+            const fromDate = document.getElementById('customer-from-date').value;
+            const toDate = document.getElementById('customer-to-date').value;
+            
+            if (!fromDate || !toDate) {
+                alert('Please select both dates');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/reports/customers?from_date=${fromDate}&to_date=${toDate}`, { headers });
+                if (!res.ok) throw new Error('Failed to load customer report');
+                
+                const data = await res.json();
+                const tbody = document.getElementById('customer-tbody');
+                
+                if (data.rows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-2 py-4 text-center text-gray-500">No sales found</td></tr>';
+                    document.getElementById('customer-summary').classList.add('hidden');
+                    return;
+                }
+                
+                tbody.innerHTML = data.rows.map(row => `
+                    <tr>
+                        <td class="px-2 py-2 border">${row.customer_name}</td>
+                        <td class="px-2 py-2 border text-sm">${row.customer_type}</td>
+                        <td class="px-2 py-2 border text-right">${row.total_invoices}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.total_sales_value)}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.total_gst_collected)}</td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('customer-summary').classList.remove('hidden');
+                document.getElementById('customer-summary').innerHTML = `
+                    <strong>Total Customers:</strong> ${data.summary.total_customers} 
+                    | <strong>Total Invoices:</strong> ${data.summary.total_invoices}
+                    | <strong>B2B Sales:</strong> ${formatCurrency(data.summary.b2b_sales)}
+                    | <strong>B2C Sales:</strong> ${formatCurrency(data.summary.b2c_sales)}
+                    | <strong>Total GST Collected:</strong> ${formatCurrency(data.summary.total_gst_collected)}
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load customer report');
+            }
+        }
+
+        // Supplier Report
+        async function loadSupplierReport() {
+            const fromDate = document.getElementById('supplier-from-date').value;
+            const toDate = document.getElementById('supplier-to-date').value;
+            
+            if (!fromDate || !toDate) {
+                alert('Please select both dates');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/reports/suppliers?from_date=${fromDate}&to_date=${toDate}`, { headers });
+                if (!res.ok) throw new Error('Failed to load supplier report');
+                
+                const data = await res.json();
+                const tbody = document.getElementById('supplier-tbody');
+                
+                if (data.rows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-2 py-4 text-center text-gray-500">No purchases found</td></tr>';
+                    document.getElementById('supplier-summary').classList.add('hidden');
+                    return;
+                }
+                
+                tbody.innerHTML = data.rows.map(row => `
+                    <tr>
+                        <td class="px-2 py-2 border">${row.supplier_name}</td>
+                        <td class="px-2 py-2 border text-sm">${row.supplier_type}</td>
+                        <td class="px-2 py-2 border text-right">${row.total_purchases}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.total_purchase_value)}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.total_input_gst_paid)}</td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('supplier-summary').classList.remove('hidden');
+                document.getElementById('supplier-summary').innerHTML = `
+                    <strong>Total Suppliers:</strong> ${data.summary.total_suppliers}
+                    | <strong>Total Purchases:</strong> ${data.summary.total_purchases}
+                    | <strong>Registered:</strong> ${formatCurrency(data.summary.registered_purchases)}
+                    | <strong>Unregistered:</strong> ${formatCurrency(data.summary.unregistered_purchases)}
+                    | <strong>Total Input GST Paid:</strong> ${formatCurrency(data.summary.total_input_gst_paid)}
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load supplier report');
+            }
+        }
+
+        // Product/HSN Report
+        async function loadProductReport() {
+            const fromDate = document.getElementById('product-from-date').value;
+            const toDate = document.getElementById('product-to-date').value;
+            
+            if (!fromDate || !toDate) {
+                alert('Please select both dates');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/reports/product-hsn?from_date=${fromDate}&to_date=${toDate}`, { headers });
+                if (!res.ok) throw new Error('Failed to load product report');
+                
+                const data = await res.json();
+                const tbody = document.getElementById('product-tbody');
+                
+                if (data.rows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-2 py-4 text-center text-gray-500">No sales found</td></tr>';
+                    document.getElementById('product-summary').classList.add('hidden');
+                    return;
+                }
+                
+                tbody.innerHTML = data.rows.map(row => `
+                    <tr>
+                        <td class="px-2 py-2 border">${row.product_name}</td>
+                        <td class="px-2 py-2 border text-sm">${row.hsn_code}</td>
+                        <td class="px-2 py-2 border text-right">${row.gst_rate}%</td>
+                        <td class="px-2 py-2 border text-right">${row.quantity_sold}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.taxable_value)}</td>
+                        <td class="px-2 py-2 border text-right">${formatCurrency(row.total_gst_collected)}</td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('product-summary').classList.remove('hidden');
+                document.getElementById('product-summary').innerHTML = `
+                    <strong>Total Products:</strong> ${data.summary.total_products}
+                    | <strong>Total Quantity:</strong> ${data.summary.total_quantity}
+                    | <strong>Total Taxable Value:</strong> ${formatCurrency(data.summary.total_taxable_value)}
+                    | <strong>Total GST Collected:</strong> ${formatCurrency(data.summary.total_gst_collected)}
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load product report');
+            }
+        }
+
+        // Inventory Report
+        async function loadInventoryReport() {
+            const date = document.getElementById('inventory-date').value;
+            
+            if (!date) {
+                alert('Please select a date');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/reports/inventory?as_of_date=${date}`, { headers });
+                if (!res.ok) throw new Error('Failed to load inventory report');
+                
+                const data = await res.json();
+                const tbody = document.getElementById('inventory-tbody');
+                
+                if (data.rows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-2 py-4 text-center text-gray-500">No products found</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = data.rows.map(row => `
+                    <tr>
+                        <td class="px-2 py-2 border">${row.product_name}</td>
+                        <td class="px-2 py-2 border text-sm">${row.hsn_code}</td>
+                        <td class="px-2 py-2 border text-right">${row.opening_stock}</td>
+                        <td class="px-2 py-2 border text-right">${row.purchased_quantity}</td>
+                        <td class="px-2 py-2 border text-right">${row.sold_quantity}</td>
+                        <td class="px-2 py-2 border text-right">${row.closing_stock}</td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load inventory report');
+            }
+        }
+
+        // Business Ledger
+        async function loadBusinessLedger() {
+            const fromDate = document.getElementById('ledger-from-date').value;
+            const toDate = document.getElementById('ledger-to-date').value;
+            
+            if (!fromDate || !toDate) {
+                alert('Please select both dates');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/reports/business-ledger?from_date=${fromDate}&to_date=${toDate}`, { headers });
+                if (!res.ok) throw new Error('Failed to load business ledger');
+                
+                const data = await res.json();
+                document.getElementById('ledger-content').innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-blue-50 p-6 rounded border border-blue-200">
+                            <h4 class="font-bold text-lg mb-4">Sales & Purchases</h4>
+                            <table class="w-full">
+                                <tr class="border-b"><td class="py-2">Total Sales</td><td class="py-2 text-right font-semibold">${formatCurrency(data.total_sales)}</td></tr>
+                                <tr class="border-b"><td class="py-2">Total Purchases</td><td class="py-2 text-right font-semibold">${formatCurrency(data.total_purchases)}</td></tr>
+                                <tr><td class="py-2">Net Position</td><td class="py-2 text-right font-semibold">${formatCurrency(data.total_sales - data.total_purchases)}</td></tr>
+                            </table>
+                        </div>
+                        <div class="bg-green-50 p-6 rounded border border-green-200">
+                            <h4 class="font-bold text-lg mb-4">GST Position (Informational)</h4>
+                            <table class="w-full">
+                                <tr class="border-b"><td class="py-2">Output GST (Sales)</td><td class="py-2 text-right font-semibold">${formatCurrency(data.total_output_gst)}</td></tr>
+                                <tr class="border-b"><td class="py-2">Input GST (Purchases)</td><td class="py-2 text-right font-semibold">${formatCurrency(data.total_input_gst)}</td></tr>
+                                <tr class="bg-yellow-100"><td class="py-2 font-bold">Net GST Position</td><td class="py-2 text-right font-bold">${formatCurrency(data.net_gst_position)}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-gray-100 rounded mt-4 text-sm text-gray-700">
+                        <strong>Period:</strong> ${data.period}
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load business ledger');
+            }
+        }
+
+        // GST Summary
+        async function loadGSTSummary() {
+            const month = document.getElementById('gst-month').value;
+            const year = document.getElementById('gst-year').value;
+            
+            try {
+                const res = await fetch(`${API_BASE}/reports/gst-summary?month=${month}&year=${year}`, { headers });
+                if (!res.ok) throw new Error('Failed to load GST summary');
+                
+                const data = await res.json();
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                
+                document.getElementById('gst-content').innerHTML = `
+                    <div class="text-center mb-4">
+                        <h4 class="text-lg font-bold">${monthNames[data.month - 1]} ${data.year}</h4>
+                        <p class="text-sm text-gray-600">${data.sales_count} sales | ${data.purchase_count} purchases</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-green-50 p-6 rounded border border-green-200">
+                            <h4 class="font-bold text-lg mb-4">Output GST (Sales)</h4>
+                            <table class="w-full">
+                                <tr class="border-b"><td class="py-2">CGST</td><td class="py-2 text-right font-semibold">${formatCurrency(data.output_gst.cgst)}</td></tr>
+                                <tr class="border-b"><td class="py-2">SGST</td><td class="py-2 text-right font-semibold">${formatCurrency(data.output_gst.sgst)}</td></tr>
+                                <tr class="border-b"><td class="py-2">IGST</td><td class="py-2 text-right font-semibold">${formatCurrency(data.output_gst.igst)}</td></tr>
+                                <tr class="bg-green-100"><td class="py-2 font-bold">Total Output GST</td><td class="py-2 text-right font-bold">${formatCurrency(data.output_gst.total)}</td></tr>
+                            </table>
+                        </div>
+                        <div class="bg-orange-50 p-6 rounded border border-orange-200">
+                            <h4 class="font-bold text-lg mb-4">Input GST (Purchases)</h4>
+                            <table class="w-full">
+                                <tr class="border-b"><td class="py-2">CGST</td><td class="py-2 text-right font-semibold">${formatCurrency(data.input_gst.cgst)}</td></tr>
+                                <tr class="border-b"><td class="py-2">SGST</td><td class="py-2 text-right font-semibold">${formatCurrency(data.input_gst.sgst)}</td></tr>
+                                <tr class="border-b"><td class="py-2">IGST</td><td class="py-2 text-right font-semibold">${formatCurrency(data.input_gst.igst)}</td></tr>
+                                <tr class="bg-orange-100"><td class="py-2 font-bold">Total Input GST</td><td class="py-2 text-right font-bold">${formatCurrency(data.input_gst.total)}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load GST summary');
+            }
+        }
+
+        // GSTR Export
+        async function loadGSTRExport() {
+            const fromDate = document.getElementById('gstr-from-date').value;
+            const toDate = document.getElementById('gstr-to-date').value;
+            
+            if (!fromDate || !toDate) {
+                alert('Please select both dates');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/reports/gstr-1-export?from_date=${fromDate}&to_date=${toDate}`, { headers });
+                if (!res.ok) throw new Error('Failed to load GSTR export');
+                
+                const data = await res.json();
+                
+                let html = `<div class="bg-blue-50 p-4 rounded mb-4">
+                    <h4 class="font-bold">Period: ${data.period}</h4>
+                    <p class="text-sm">Total Output GST: <strong>${formatCurrency(data.total_output_gst)}</strong></p>
+                </div>`;
+                
+                // B2B Invoices
+                if (data.b2b_invoices.length > 0) {
+                    html += `
+                        <div class="mb-6">
+                            <h4 class="font-bold text-lg mb-2">B2B Invoices (with GSTIN)</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full bg-white border text-sm">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th class="px-2 py-2 border text-left">Invoice</th>
+                                            <th class="px-2 py-2 border text-left">Customer</th>
+                                            <th class="px-2 py-2 border text-left">GSTIN</th>
+                                            <th class="px-2 py-2 border text-right">Taxable</th>
+                                            <th class="px-2 py-2 border text-right">CGST</th>
+                                            <th class="px-2 py-2 border text-right">SGST</th>
+                                            <th class="px-2 py-2 border text-right">IGST</th>
+                                            <th class="px-2 py-2 border text-right">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.b2b_invoices.map(row => `
+                                            <tr>
+                                                <td class="px-2 py-2 border">${row.invoice_number}</td>
+                                                <td class="px-2 py-2 border">${row.customer_name}</td>
+                                                <td class="px-2 py-2 border text-xs">${row.customer_gstin}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.taxable_value)}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.cgst)}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.sgst)}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.igst)}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.total_value)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // B2C Summary
+                if (data.b2c_summary.length > 0) {
+                    html += `
+                        <div class="mb-6">
+                            <h4 class="font-bold text-lg mb-2">B2C Summary (without GSTIN)</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full bg-white border text-sm">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th class="px-2 py-2 border">State</th>
+                                            <th class="px-2 py-2 border text-right">Taxable</th>
+                                            <th class="px-2 py-2 border text-right">CGST</th>
+                                            <th class="px-2 py-2 border text-right">SGST</th>
+                                            <th class="px-2 py-2 border text-right">IGST</th>
+                                            <th class="px-2 py-2 border text-right">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.b2c_summary.map(row => `
+                                            <tr>
+                                                <td class="px-2 py-2 border">${row.state_code}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.taxable_value)}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.cgst)}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.sgst)}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.igst)}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.total_value)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // HSN Summary
+                if (data.hsn_summary.length > 0) {
+                    html += `
+                        <div>
+                            <h4 class="font-bold text-lg mb-2">HSN Summary (for GSTR-1 Table 5A)</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full bg-white border text-sm">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th class="px-2 py-2 border">HSN</th>
+                                            <th class="px-2 py-2 border">Qty</th>
+                                            <th class="px-2 py-2 border text-right">Taxable Value</th>
+                                            <th class="px-2 py-2 border text-right">CGST</th>
+                                            <th class="px-2 py-2 border text-right">SGST</th>
+                                            <th class="px-2 py-2 border text-right">IGST</th>
+                                            <th class="px-2 py-2 border text-right">Total Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.hsn_summary.map(row => `
+                                            <tr>
+                                                <td class="px-2 py-2 border">${row.hsn_code}</td>
+                                                <td class="px-2 py-2 border">${row.quantity}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.taxable_value)}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.cgst)}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.sgst)}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.igst)}</td>
+                                                <td class="px-2 py-2 border text-right">${formatCurrency(row.total_value)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('gstr-content').innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load GSTR export');
+            }
+        }
+
+        // Export functions
+        async function exportSalesCSV() {
+            const fromDate = document.getElementById('sales-from-date').value;
+            const toDate = document.getElementById('sales-to-date').value;
+            if (!fromDate || !toDate) {
+                alert('Please select dates first');
+                return;
+            }
+            const url = `${API_BASE}/reports/sales/export/csv?from_date=${fromDate}&to_date=${toDate}`;
+            downloadFile(url, `sales_register_${fromDate}_${toDate}.csv`);
+        }
+
+        async function exportPurchaseCSV() {
+            const fromDate = document.getElementById('purchase-from-date').value;
+            const toDate = document.getElementById('purchase-to-date').value;
+            if (!fromDate || !toDate) {
+                alert('Please select dates first');
+                return;
+            }
+            const url = `${API_BASE}/reports/purchases/export/csv?from_date=${fromDate}&to_date=${toDate}`;
+            downloadFile(url, `purchase_register_${fromDate}_${toDate}.csv`);
+        }
+
+        function downloadFile(url, filename) {
+            fetch(url, { headers }).then(r => r.blob()).then(blob => {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }).catch(e => {
+                console.error('Download error:', e);
+                alert('Failed to download file');
+            });
+        }
+
+        setDefaultDates();
+    </script>
+
+    <style>
+        .tab-btn {
+            padding: 0.75rem 1rem;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover {
+            color: #2563eb;
+            background-color: #f3f4f6;
+        }
+        .tab-btn.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</body>
+</html>

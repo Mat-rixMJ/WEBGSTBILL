@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGST - GST Billing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">WebGST</h1>
+            <div id="nav-links" class="hidden space-x-4">
+                <a href="dashboard.html" class="hover:underline">Dashboard</a>
+                <a href="products.html" class="hover:underline">Products</a>
+                <a href="customers.html" class="hover:underline">Customers</a>
+                <a href="suppliers.html" class="hover:underline">Suppliers</a>
+                <a href="purchases.html" class="hover:underline">Purchases</a>
+                <a href="invoices.html" class="hover:underline">Invoices</a>
+                <a href="reports.html" class="hover:underline">Reports</a>
+                <button onclick="logout()" class="bg-red-500 px-4 py-2 rounded hover:bg-red-600">Logout</button>
+            </div>
+            <div id="login-link">
+                <a href="index.html" class="bg-white text-blue-600 px-4 py-2 rounded hover:bg-gray-100">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-8 max-w-md">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h2 class="text-3xl font-bold mb-6 text-center">Login</h2>
+            
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Username</label>
+                    <input type="text" id="username" required 
+                           class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Password</label>
+                    <input type="password" id="password" required 
+                           class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                    Login
+                </button>
+            </form>
+            
+            <div id="error-msg" class="hidden mt-4 p-3 bg-red-100 text-red-700 rounded"></div>
+            <div id="success-msg" class="hidden mt-4 p-3 bg-green-100 text-green-700 rounded"></div>
+            
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600">
+                    Don't have an account? 
+                    <a href="#" onclick="showRegister()" class="text-blue-600 hover:underline">Register</a>
+                </p>
+            </div>
+        </div>
+        
+        <!-- Register Form (hidden by default) -->
+        <div id="register-form" class="hidden bg-white rounded-lg shadow-lg p-8 mt-4">
+            <h2 class="text-3xl font-bold mb-6 text-center">Register</h2>
+            
+            <form onsubmit="register(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Username</label>
+                    <input type="text" id="reg-username" required 
+                           class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Email</label>
+                    <input type="email" id="reg-email" required 
+                           class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Password</label>
+                    <input type="password" id="reg-password" required minlength="8"
+                           class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
+                    Register
+                </button>
+                
+                <button type="button" onclick="showLogin()" 
+                        class="w-full bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400">
+                    Back to Login
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Compute API base at runtime to avoid stale cached ports
+        const API_HOST = window.location.hostname || '127.0.0.1';
+        const API_URL = `http://${API_HOST}:8000/api`;
+        
+        // Check session state and login status
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('session') === 'expired') {
+            showError('Session expired. Please login again.');
+            history.replaceState(null, '', window.location.pathname);
+        }
+
+        async function redirectAfterLogin(token) {
+            try {
+                const res = await fetch(`${API_URL}/business/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 404) {
+                    window.location.href = 'business.html';
+                    return;
+                }
+                window.location.href = 'dashboard.html';
+            } catch (_) {
+                window.location.href = 'dashboard.html';
+            }
+        }
+
+        // Redirect if already logged in (and business not yet created)
+        if (localStorage.getItem('token')) {
+            redirectAfterLogin(localStorage.getItem('token'));
+        }
+        
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // OAuth2 password flow requires form data
+            const formData = new URLSearchParams();
+            formData.append('username', username);
+            formData.append('password', password);
+            
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('token', data.access_token);
+                    await redirectAfterLogin(data.access_token);
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Login failed');
+                }
+            } catch (err) {
+                showError('Network error. Please check if backend is running.');
+            }
+        });
+        
+        async function register(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, email, password })
+                });
+                
+                if (response.ok) {
+                    showSuccess('Registration successful! Please login.');
+                    setTimeout(() => showLogin(), 2000);
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Registration failed');
+                }
+            } catch (err) {
+                showError('Network error. Please check if backend is running.');
+            }
+        }
+        
+        function showRegister() {
+            document.getElementById('register-form').classList.remove('hidden');
+            document.getElementById('login-form').parentElement.classList.add('hidden');
+        }
+        
+        function showLogin() {
+            document.getElementById('register-form').classList.add('hidden');
+            document.getElementById('login-form').parentElement.classList.remove('hidden');
+        }
+        
+        function showError(msg) {
+            const errorDiv = document.getElementById('error-msg');
+            errorDiv.textContent = msg;
+            errorDiv.classList.remove('hidden');
+            setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+        }
+        
+        function showSuccess(msg) {
+            const successDiv = document.getElementById('success-msg');
+            successDiv.textContent = msg;
+            successDiv.classList.remove('hidden');
+            setTimeout(() => successDiv.classList.add('hidden'), 5000);
+        }
+    </script>
+</body>
+</html>

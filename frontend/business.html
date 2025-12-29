@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Profile - WebGST</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">WebGST</h1>
+            <div class="space-x-4 text-sm md:text-base">
+                <a href="dashboard.html" class="hover:underline">Dashboard</a>
+                <a href="business.html" class="font-bold hover:underline">Business</a>
+                <a href="products.html" class="hover:underline">Products</a>
+                <a href="customers.html" class="hover:underline">Customers</a>
+                <a href="suppliers.html" class="hover:underline">Suppliers</a>
+                <a href="purchases.html" class="hover:underline">Purchases</a>
+                <a href="invoices.html" class="hover:underline">Sales</a>
+                <a href="reports.html" class="hover:underline">Reports</a>
+                <button onclick="logout()" class="bg-red-500 px-4 py-2 rounded hover:bg-red-600">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-8 max-w-3xl">
+        <div class="bg-white rounded-lg shadow p-6 mb-6" id="existing-card" style="display:none;">
+            <h2 class="text-2xl font-bold mb-2">Business Profile</h2>
+            <p class="text-sm text-gray-600 mb-4">GST details in use for all invoices.</p>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div><dt class="font-semibold">Name</dt><dd id="b-name" class="text-gray-700"></dd></div>
+                <div><dt class="font-semibold">GSTIN</dt><dd id="b-gstin" class="text-gray-700"></dd></div>
+                <div><dt class="font-semibold">State Code</dt><dd id="b-state" class="text-gray-700"></dd></div>
+                <div><dt class="font-semibold">Address</dt><dd id="b-address" class="text-gray-700"></dd></div>
+                <div><dt class="font-semibold">City</dt><dd id="b-city" class="text-gray-700"></dd></div>
+                <div><dt class="font-semibold">Pincode</dt><dd id="b-pincode" class="text-gray-700"></dd></div>
+                <div><dt class="font-semibold">Phone</dt><dd id="b-phone" class="text-gray-700"></dd></div>
+                <div><dt class="font-semibold">Email</dt><dd id="b-email" class="text-gray-700"></dd></div>
+                <div><dt class="font-semibold">Invoice Prefix</dt><dd id="b-prefix" class="text-gray-700"></dd></div>
+                <div><dt class="font-semibold">Start Number</dt><dd id="b-start" class="text-gray-700"></dd></div>
+            </dl>
+            <div class="mt-4 flex gap-3">
+                <a id="next-link" href="invoices.html" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Go to Invoices</a>
+                <a href="dashboard.html" class="bg-gray-100 text-gray-800 px-4 py-2 rounded hover:bg-gray-200">Dashboard</a>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6" id="create-card">
+            <h2 class="text-2xl font-bold mb-2">Create Business Profile</h2>
+            <p class="text-sm text-gray-600 mb-4">Required before creating invoices.</p>
+
+            <div id="error" class="hidden mb-4 p-3 rounded bg-red-100 text-red-700 text-sm"></div>
+            <div id="success" class="hidden mb-4 p-3 rounded bg-green-100 text-green-700 text-sm"></div>
+
+            <form id="business-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium mb-1">Legal Name *</label>
+                    <input id="name" required class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">GSTIN *</label>
+                    <input id="gstin" maxlength="15" required class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 uppercase" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">State Code (2 digits) *</label>
+                    <input id="state_code" maxlength="2" required class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 uppercase" />
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium mb-1">Address *</label>
+                    <input id="address" required class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">City *</label>
+                    <input id="city" required class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Pincode *</label>
+                    <input id="pincode" maxlength="6" required class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Phone</label>
+                    <input id="phone" class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Email</label>
+                    <input id="email" type="email" class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Invoice Prefix</label>
+                    <input id="invoice_prefix" value="INV" maxlength="10" class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 uppercase" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Starting Number</label>
+                    <input id="invoice_start_number" type="number" min="1" value="1" class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div class="md:col-span-2 flex gap-3 mt-2">
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700">Save & Continue</button>
+                    <a href="dashboard.html" class="text-gray-600 hover:underline self-center">Back to Dashboard</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_HOST = window.location.hostname || '127.0.0.1';
+        const API_URL = `http://${API_HOST}:8000/api`;
+
+        function showError(msg) {
+            const el = document.getElementById('error');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 5000);
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('success');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 5000);
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        async function loadBusiness() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'index.html';
+                return;
+            }
+            try {
+                const res = await fetch(`${API_URL}/business/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 404) {
+                    document.getElementById('create-card').style.display = 'block';
+                    return;
+                }
+                if (!res.ok) throw new Error('Failed to load business profile');
+                const data = await res.json();
+                document.getElementById('b-name').textContent = data.name;
+                document.getElementById('b-gstin').textContent = data.gstin;
+                document.getElementById('b-state').textContent = data.state_code;
+                document.getElementById('b-address').textContent = data.address;
+                document.getElementById('b-city').textContent = data.city;
+                document.getElementById('b-pincode').textContent = data.pincode;
+                document.getElementById('b-phone').textContent = data.phone || '-';
+                document.getElementById('b-email').textContent = data.email || '-';
+                document.getElementById('b-prefix').textContent = data.invoice_prefix;
+                document.getElementById('b-start').textContent = data.invoice_start_number;
+                const next = new URLSearchParams(window.location.search).get('next') || 'dashboard.html';
+                document.getElementById('next-link').href = next;
+                document.getElementById('existing-card').style.display = 'block';
+                document.getElementById('create-card').style.display = 'none';
+            } catch (err) {
+                showError(err.message || 'Failed to load business profile');
+            }
+        }
+
+        document.getElementById('business-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'index.html';
+                return;
+            }
+            const payload = {
+                name: document.getElementById('name').value.trim(),
+                gstin: document.getElementById('gstin').value.trim().toUpperCase(),
+                state_code: document.getElementById('state_code').value.trim().toUpperCase(),
+                address: document.getElementById('address').value.trim(),
+                city: document.getElementById('city').value.trim(),
+                pincode: document.getElementById('pincode').value.trim(),
+                phone: document.getElementById('phone').value.trim() || null,
+                email: document.getElementById('email').value.trim() || null,
+                invoice_prefix: document.getElementById('invoice_prefix').value.trim().toUpperCase() || 'INV',
+                invoice_start_number: parseInt(document.getElementById('invoice_start_number').value || '1', 10)
+            };
+            try {
+                const res = await fetch(`${API_URL}/business/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Failed to save business profile');
+                }
+                showSuccess('Business profile created. Redirecting...');
+                setTimeout(() => {
+                    const next = new URLSearchParams(window.location.search).get('next') || 'invoices.html';
+                    window.location.href = next;
+                }, 1000);
+            } catch (err) {
+                showError(err.message || 'Failed to save business profile');
+            }
+        });
+
+        // Init
+        loadBusiness();
+    </script>
+</body>
+</html>

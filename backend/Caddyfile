@@ -1,0 +1,50 @@
+# Caddy Configuration for WebGST
+# Modern alternative to Nginx with automatic HTTPS
+
+your-domain.com {
+    # Automatic HTTPS with Let's Encrypt
+    
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+    
+    # Logging
+    log {
+        output file /var/log/caddy/webgst_access.log
+        format json
+    }
+    
+    # Frontend static files
+    root * /var/www/webgst/frontend
+    file_server
+    
+    # API reverse proxy
+    handle /api/* {
+        reverse_proxy localhost:8000 {
+            header_up X-Real-IP { remote_host }
+            header_up X-Forwarded-For { remote_host }
+            header_up X-Forwarded-Proto { scheme }
+        }
+    }
+    
+    # SPA fallback
+    try_files { path } /index.html
+    
+    # Gzip compression
+    encode gzip
+    
+    # Rate limiting (via plugin)
+    # Install: caddy add-package github.com/mholt/caddy-ratelimit
+    rate_limit {
+        zone api {
+            key { remote_host }
+            events 100
+            window 1m
+        }
+    }
+}

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Invoices - WebGST</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">WebGST</h1>
+            <div class="space-x-4 text-sm md:text-base">
+                <a href="dashboard.html" class="hover:underline">Dashboard</a>
+                <a href="business.html" class="hover:underline">Business</a>
+                <a href="products.html" class="hover:underline">Products</a>
+                <a href="customers.html" class="hover:underline">Customers</a>
+                <a href="suppliers.html" class="hover:underline">Suppliers</a>
+                <a href="purchases.html" class="hover:underline">Purchases</a>
+                <a href="invoices.html" class="font-bold hover:underline">Sales</a>
+                <a href="reports.html" class="hover:underline">Reports</a>
+                <button onclick="logout()" class="bg-red-500 px-4 py-2 rounded hover:bg-red-600">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div>
+                <h2 class="text-3xl font-bold">Sales Invoices (OUTPUT GST)</h2>
+                <p class="text-sm text-gray-600">Sequential, locked after save, GST snapshot preserved.</p>
+            </div>
+            <button onclick="showAddModal()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 shadow">
+                + Create Sales Invoice
+            </button>
+        </div>
+
+        <div class="bg-white rounded-lg shadow overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-100 border-b">
+                    <tr>
+                        <th class="px-4 py-3 text-left">Invoice No</th>
+                        <th class="px-4 py-3 text-left">Customer</th>
+                        <th class="px-4 py-3 text-center">Date</th>
+                        <th class="px-4 py-3 text-center">Status</th>
+                        <th class="px-4 py-3 text-right">Grand Total</th>
+                        <th class="px-4 py-3 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="invoices-table">
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">Loading invoices...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Create Invoice Modal -->
+    <div id="invoice-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-8 max-w-6xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 id="modal-title" class="text-2xl font-bold">Create Sales Invoice</h3>
+                    <p class="text-sm text-gray-600">Live GST preview. Finalization locks and reduces stock.</p>
+                </div>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+
+            <form id="invoice-form" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Customer <span class="text-red-500">*</span></label>
+                        <select id="customer_id" required onchange="onCustomerChange()" class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- Select Customer --</option>
+                        </select>
+                        <p id="customer-details" class="text-xs text-gray-600 mt-1"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Invoice Date <span class="text-red-500">*</span></label>
+                        <input type="date" id="invoice_date" required class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Place of Supply <span class="text-red-500">*</span></label>
+                        <input type="text" id="place_of_supply" readonly class="w-full px-4 py-2 border rounded bg-gray-100 text-gray-700" placeholder="Auto from customer">
+                    </div>
+                </div>
+
+                <!-- Items -->
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="block text-sm font-medium">Invoice Items <span class="text-red-500">*</span></label>
+                        <button type="button" onclick="addItem()" class="bg-green-600 text-white px-4 py-1 rounded text-sm hover:bg-green-700">+ Add Item</button>
+                    </div>
+                    <div class="overflow-x-auto border rounded">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="px-2 py-2 text-left">Product</th>
+                                    <th class="px-2 py-2 text-right">Qty</th>
+                                    <th class="px-2 py-2 text-center">Unit</th>
+                                    <th class="px-2 py-2 text-right">Rate (₹)</th>
+                                    <th class="px-2 py-2 text-center">GST %</th>
+                                    <th class="px-2 py-2 text-right">Taxable</th>
+                                    <th class="px-2 py-2 text-right">GST</th>
+                                    <th class="px-2 py-2 text-right">Total</th>
+                                    <th class="px-2 py-2 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="items-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- GST Preview -->
+                <div class="bg-blue-50 border border-blue-200 rounded p-4">
+                    <h4 class="font-bold mb-3 text-blue-900">OUTPUT GST Preview</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div><p class="text-gray-600">Taxable Value</p><div id="preview-taxable" class="font-bold text-lg">₹0.00</div></div>
+                        <div><p class="text-gray-600">CGST</p><div id="preview-cgst" class="font-bold text-lg">₹0.00</div></div>
+                        <div><p class="text-gray-600">SGST</p><div id="preview-sgst" class="font-bold text-lg">₹0.00</div></div>
+                        <div><p class="text-gray-600">IGST</p><div id="preview-igst" class="font-bold text-lg">₹0.00</div></div>
+                        <div><p class="text-gray-600">Total GST</p><div id="preview-gst" class="font-bold text-lg text-blue-700">₹0.00</div></div>
+                        <div class="md:col-span-3"><p class="text-gray-600">Grand Total</p><div id="preview-total" class="font-bold text-xl text-green-700">₹0.00</div></div>
+                    </div>
+                    <p class="text-xs text-blue-700 mt-2" id="tax-type-info"></p>
+                </div>
+
+                <div id="error-message" class="hidden p-4 bg-red-50 border border-red-300 rounded text-red-700 text-sm"></div>
+                <div id="success-message" class="hidden p-4 bg-green-50 border border-green-300 rounded text-green-700 text-sm"></div>
+
+                <div class="flex flex-col md:flex-row gap-4 pt-4">
+                    <button id="finalize-btn" type="submit" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed">Finalize Invoice</button>
+                    <button type="button" onclick="closeModal()" class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded hover:bg-gray-400 font-medium">Cancel</button>
+                    <button id="pdf-btn" type="button" class="hidden flex-1 bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700 font-medium" onclick="downloadPdf()">Download PDF</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_HOST = window.location.hostname || '127.0.0.1';
+        const API_BASE = `http://${API_HOST}:8000/api`;
+        let customers = [];
+        let products = [];
+        let businessStateCode = null;
+        let currentInvoiceId = null;
+        let currentInvoiceNumber = null;
+
+        window.onload = async function() {
+            if (!localStorage.getItem('token')) {
+                window.location.href = 'index.html';
+                return;
+            }
+            await loadBusiness();
+            await Promise.all([loadCustomers(), loadProducts(), loadInvoices()]);
+            document.getElementById('invoice_date').valueAsDate = new Date();
+        };
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        async function loadBusiness() {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE}/business/`, { headers: { 'Authorization': `Bearer ${token}` }});
+            if (res.status === 404) {
+                window.location.href = 'business.html?next=invoices.html';
+                return;
+            }
+            if (res.ok) {
+                const data = await res.json();
+                businessStateCode = data.state_code;
+            }
+        }
+
+        async function loadCustomers() {
+            try {
+                const res = await fetch(`${API_BASE}/customers/?limit=1000`);
+                if (!res.ok) {
+                    console.error('Failed to load customers:', res.status, res.statusText);
+                    return;
+                }
+                customers = await res.json();
+                console.log('Loaded customers:', customers.length);
+                const select = document.getElementById('customer_id');
+                customers.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = `${c.name} (${c.customer_type})`;
+                    opt.dataset.stateCode = c.state_code;
+                    opt.dataset.gstin = c.gstin || '';
+                    select.appendChild(opt);
+                });
+            } catch (error) {
+                console.error('Error loading customers:', error);
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                const res = await fetch(`${API_BASE}/products/?limit=1000`);
+                if (!res.ok) {
+                    console.error('Failed to load products:', res.status, res.statusText);
+                    return;
+                }
+                products = await res.json();
+                console.log('Loaded products:', products.length);
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+
+        async function loadInvoices() {
+            const token = localStorage.getItem('token');
+            const table = document.getElementById('invoices-table');
+            try {
+                const res = await fetch(`${API_BASE}/invoices/?limit=200`, { headers: { 'Authorization': `Bearer ${token}` }});
+                if (!res.ok) {
+                    console.error('Failed to load invoices:', res.status, res.statusText);
+                    const errorText = await res.text();
+                    console.error('Error details:', errorText);
+                    table.innerHTML = `<tr><td colspan="6" class="px-4 py-4 text-center text-red-600">Failed to load invoices</td></tr>`;
+                    return;
+                }
+                const data = await res.json();
+                if (!data.length) {
+                    table.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">No invoices yet</td></tr>`;
+                    return;
+                }
+                table.innerHTML = data.map(inv => {
+                    const date = new Date(inv.invoice_date).toLocaleDateString();
+                    const amount = formatCurrency(inv.grand_total);
+                    const statusBadge = inv.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
+                    return `
+                        <tr class="border-b">
+                            <td class="px-4 py-3 font-semibold">${inv.invoice_number}</td>
+                            <td class="px-4 py-3">${inv.customer_name}</td>
+                            <td class="px-4 py-3 text-center">${date}</td>
+                            <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded text-xs ${statusBadge}">${inv.status}</span></td>
+                            <td class="px-4 py-3 text-right">${amount}</td>
+                            <td class="px-4 py-3 text-center space-x-2">
+                                <button class="text-blue-600 hover:underline" onclick="downloadPdfById(${inv.id})">PDF</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading invoices:', error);
+                table.innerHTML = `<tr><td colspan="6" class="px-4 py-4 text-center text-red-600">Failed to load invoices</td></tr>`;
+            }
+        }
+
+        function showAddModal() {
+            // Reset form but preserve dynamically loaded select options
+            document.getElementById('customer_id').value = '';
+            document.getElementById('invoice_date').valueAsDate = new Date();
+            document.getElementById('place_of_supply').value = '';
+            document.getElementById('customer-details').textContent = '';
+            document.getElementById('items-table').innerHTML = '';
+            document.getElementById('error-message').classList.add('hidden');
+            document.getElementById('success-message').classList.add('hidden');
+            currentInvoiceId = null;
+            currentInvoiceNumber = null;
+            document.getElementById('pdf-btn').classList.add('hidden');
+            document.getElementById('finalize-btn').disabled = false;
+            addItem();
+            document.getElementById('invoice-modal').classList.remove('hidden');
+            updatePreview();
+        }
+
+        function closeModal() {
+            document.getElementById('invoice-modal').classList.add('hidden');
+        }
+
+        function onCustomerChange() {
+            const select = document.getElementById('customer_id');
+            const opt = select.options[select.selectedIndex];
+            if (!opt || !opt.value) {
+                document.getElementById('place_of_supply').value = '';
+                document.getElementById('customer-details').textContent = '';
+                updatePreview();
+                return;
+            }
+            const stateCode = opt.dataset.stateCode;
+            const gstin = opt.dataset.gstin;
+            document.getElementById('place_of_supply').value = stateCode;
+            document.getElementById('customer-details').textContent = gstin ? `GSTIN: ${gstin} | State: ${stateCode}` : `State: ${stateCode} (B2C)`;
+            updatePreview();
+        }
+
+        function addItem() {
+            const rowId = crypto.randomUUID();
+            const row = document.createElement('tr');
+            row.id = rowId;
+            row.className = 'border-b';
+            row.innerHTML = `
+                <td class="px-2 py-2">
+                    <select data-field="product_id" required class="w-full px-2 py-1 border rounded" onchange="onProductChange('${rowId}')">
+                        <option value="">-- Product --</option>
+                        ${products.map(p => `<option value="${p.id}" data-rate="${p.price_paise}" data-gst="${p.gst_rate}" data-unit="${p.unit}">${p.name} (HSN ${p.hsn_code})</option>`).join('')}
+                    </select>
+                </td>
+                <td class="px-2 py-2 text-right"><input type="number" data-field="quantity" min="1" step="1" value="1" class="w-full px-2 py-1 border rounded text-right" onchange="updateItem('${rowId}')"></td>
+                <td class="px-2 py-2 text-center" data-display="unit">-</td>
+                <td class="px-2 py-2 text-right" data-display="rate">₹0.00</td>
+                <td class="px-2 py-2 text-center" data-display="gst_rate">0%</td>
+                <td class="px-2 py-2 text-right" data-display="taxable">₹0.00</td>
+                <td class="px-2 py-2 text-right" data-display="gst">₹0.00</td>
+                <td class="px-2 py-2 text-right font-semibold" data-display="total">₹0.00</td>
+                <td class="px-2 py-2 text-center"><button type="button" class="text-red-600 hover:text-red-800 text-xs" onclick="removeItem('${rowId}')">✕</button></td>
+            `;
+            document.getElementById('items-table').appendChild(row);
+        }
+
+        function onProductChange(rowId) {
+            const row = document.getElementById(rowId);
+            if (!row) return;
+            const select = row.querySelector('[data-field="product_id"]');
+            const opt = select.options[select.selectedIndex];
+            const unitCell = row.querySelector('[data-display="unit"]');
+            const rateCell = row.querySelector('[data-display="rate"]');
+            const gstCell = row.querySelector('[data-display="gst_rate"]');
+            if (opt && opt.value) {
+                const ratePaise = parseInt(opt.dataset.rate || '0', 10);
+                const gstRate = parseFloat(opt.dataset.gst || '0');
+                unitCell.textContent = opt.dataset.unit || '-';
+                rateCell.textContent = formatCurrency(ratePaise / 100);
+                gstCell.textContent = `${gstRate}%`;
+            } else {
+                unitCell.textContent = '-';
+                rateCell.textContent = '₹0.00';
+                gstCell.textContent = '0%';
+            }
+            updateItem(rowId);
+        }
+
+        function removeItem(rowId) {
+            const row = document.getElementById(rowId);
+            if (row) row.remove();
+            updatePreview();
+        }
+
+        function updateItem(rowId) {
+            const row = document.getElementById(rowId);
+            if (!row) return;
+            const select = row.querySelector('[data-field="product_id"]');
+            const qty = parseInt(row.querySelector('[data-field="quantity"]').value || '0', 10);
+            const opt = select.options[select.selectedIndex];
+            const ratePaise = opt && opt.value ? parseInt(opt.dataset.rate || '0', 10) : 0;
+            const gstRate = opt && opt.value ? parseFloat(opt.dataset.gst || '0') : 0;
+
+            const taxable = (qty * ratePaise) / 100;
+            const isInterstate = isInterState();
+            let gstAmount = (taxable * gstRate) / 100;
+            let cgst = 0, sgst = 0, igst = 0;
+            if (isInterstate) {
+                igst = gstAmount;
+            } else {
+                cgst = gstAmount / 2;
+                sgst = gstAmount / 2;
+            }
+            const total = taxable + gstAmount;
+
+            row.querySelector('[data-display="taxable"]').textContent = formatCurrency(taxable);
+            row.querySelector('[data-display="gst"]').textContent = formatCurrency(gstAmount);
+            row.querySelector('[data-display="total"]').textContent = formatCurrency(total);
+
+            updatePreview();
+        }
+
+        function isInterState() {
+            const customerSelect = document.getElementById('customer_id');
+            const opt = customerSelect.options[customerSelect.selectedIndex];
+            if (!opt || !opt.value) return false;
+            const custState = opt.dataset.stateCode;
+            return businessStateCode && custState && businessStateCode !== custState;
+        }
+
+        function updatePreview() {
+            const rows = document.querySelectorAll('#items-table tr');
+            let taxable = 0, totalGst = 0, cgst = 0, sgst = 0, igst = 0;
+            rows.forEach(row => {
+                const select = row.querySelector('[data-field="product_id"]');
+                const opt = select.options[select.selectedIndex];
+                if (!opt || !opt.value) return;
+                const qty = parseInt(row.querySelector('[data-field="quantity"]').value || '0', 10);
+                const ratePaise = parseInt(opt.dataset.rate || '0', 10);
+                const gstRate = parseFloat(opt.dataset.gst || '0');
+                const taxableLine = (qty * ratePaise) / 100;
+                const gstLine = (taxableLine * gstRate) / 100;
+                taxable += taxableLine;
+                totalGst += gstLine;
+                if (isInterState()) {
+                    igst += gstLine;
+                } else {
+                    cgst += gstLine / 2;
+                    sgst += gstLine / 2;
+                }
+            });
+            const grand = taxable + totalGst;
+            document.getElementById('preview-taxable').textContent = formatCurrency(taxable);
+            document.getElementById('preview-gst').textContent = formatCurrency(totalGst);
+            document.getElementById('preview-cgst').textContent = formatCurrency(cgst);
+            document.getElementById('preview-sgst').textContent = formatCurrency(sgst);
+            document.getElementById('preview-igst').textContent = formatCurrency(igst);
+            document.getElementById('preview-total').textContent = formatCurrency(grand);
+            document.getElementById('tax-type-info').textContent = isInterState() ? 'Inter-state supply → IGST applies.' : 'Intra-state supply → CGST + SGST apply.';
+            document.getElementById('finalize-btn').disabled = !isFormValid();
+        }
+
+        function isFormValid() {
+            const customer = document.getElementById('customer_id').value;
+            if (!customer) return false;
+            const rows = document.querySelectorAll('#items-table tr');
+            if (!rows.length) return false;
+            for (const row of rows) {
+                const productId = row.querySelector('[data-field="product_id"]').value;
+                const qty = parseInt(row.querySelector('[data-field="quantity"]').value || '0', 10);
+                if (!productId || qty <= 0) return false;
+            }
+            return true;
+        }
+
+        document.getElementById('invoice-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!isFormValid()) {
+                showError('Please fill all required fields and at least one item.');
+                return;
+            }
+            document.getElementById('finalize-btn').disabled = true;
+            const payload = buildPayload();
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_BASE}/invoices`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Failed to create invoice');
+                }
+                currentInvoiceId = data.id;
+                currentInvoiceNumber = data.invoice_number;
+                lockForm();
+                showSuccess(`Invoice ${data.invoice_number} finalized. Stock reduced and locked.`);
+                await loadInvoices();
+            } catch (err) {
+                showError(err.message);
+                document.getElementById('finalize-btn').disabled = false;
+            }
+        });
+
+        function buildPayload() {
+            const customerId = parseInt(document.getElementById('customer_id').value, 10);
+            const invoiceDate = document.getElementById('invoice_date').value;
+            const placeOfSupply = document.getElementById('place_of_supply').value;
+            const items = [];
+            let taxable = 0, gst = 0;
+            document.querySelectorAll('#items-table tr').forEach(row => {
+                const productId = parseInt(row.querySelector('[data-field="product_id"]').value || '0', 10);
+                const qty = parseInt(row.querySelector('[data-field="quantity"]').value || '0', 10);
+                if (!productId || qty <= 0) return;
+                const opt = row.querySelector('[data-field="product_id"]').options[row.querySelector('[data-field="product_id"]').selectedIndex];
+                const ratePaise = parseInt(opt.dataset.rate || '0', 10);
+                const gstRate = parseFloat(opt.dataset.gst || '0');
+                const taxableLine = (qty * ratePaise) / 100;
+                const gstLine = (taxableLine * gstRate) / 100;
+                taxable += taxableLine;
+                gst += gstLine;
+                items.push({ product_id: productId, quantity: qty });
+            });
+            const grand = taxable + gst;
+            const clientTotals = {
+                total_taxable_value: round2(taxable),
+                total_gst: round2(gst),
+                grand_total: round2(grand)
+            };
+            return { customer_id: customerId, invoice_date: invoiceDate, place_of_supply: placeOfSupply, items, client_totals: clientTotals };
+        }
+
+        function lockForm() {
+            document.querySelectorAll('#invoice-form input, #invoice-form select, #invoice-form button').forEach(el => {
+                if (el.id === 'pdf-btn') return;
+                el.disabled = true;
+            });
+            document.getElementById('pdf-btn').classList.remove('hidden');
+        }
+
+        function showError(msg) {
+            const box = document.getElementById('error-message');
+            box.textContent = msg;
+            box.classList.remove('hidden');
+            document.getElementById('success-message').classList.add('hidden');
+        }
+
+        function showSuccess(msg) {
+            const box = document.getElementById('success-message');
+            box.textContent = msg;
+            box.classList.remove('hidden');
+            document.getElementById('error-message').classList.add('hidden');
+        }
+
+        function formatCurrency(amount) {
+            return `₹${(Number(amount) || 0).toFixed(2)}`;
+        }
+
+        function round2(num) {
+            return Number((Number(num) || 0).toFixed(2));
+        }
+
+        async function downloadPdf() {
+            if (!currentInvoiceId) return;
+            await downloadPdfById(currentInvoiceId);
+        }
+
+        async function downloadPdfById(id) {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE}/invoices/${id}/pdf`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) {
+                alert('Failed to download PDF');
+                return;
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = currentInvoiceNumber ? `${currentInvoiceNumber}.pdf` : `invoice_${id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
